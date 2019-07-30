@@ -1,5 +1,6 @@
 # docker stack deploy -c stack-app.yml app --with-registry-auth --prune
 version: "3.7"
+
 networks:
   app:
     driver: overlay
@@ -10,65 +11,146 @@ networks:
   proxy: 
     external: true
 
+x-default-opts: 
+  &default-opts
+  logging:
+    options:
+      max-size: "10m" 
+
 services:
-  backend:
-    image: jakubhajek/nodejs-backend:latest
-    networks:
-      - app
-    deploy:
-      mode: replicated
-      replicas: 2
-      update_config:
-        failure_action: rollback
-        parallelism: 1
-        delay: 5s
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-      resources:
-        limits:
-          memory: 64M
 
-  frontend:
-    image: nginx:1.17-alpine
-    healthcheck: 
-      test: wget --quiet --tries=1 --spider http://localhost:80/ || exit 1
-      interval: 1s
-      timeout: 5s
-      retries: 3
-      start_period: 5s
+  home:
+    <<: *default-opts
+    image: abiosoft/caddy:0.11.1-no-stats
     networks:
-      - app
       - proxy
-    configs:
-      - source: nginx_config
-        target: /etc/nginx/nginx.conf
+    #volumes:
+      #- /localhost/www/home/srv:/srv
     deploy:
       mode: replicated
       replicas: 2
-      update_config:
-        failure_action: rollback
-        parallelism: 1
-        delay: 10s
+      #placement:
+      #  constraints: [node.role==manager]
       restart_policy:
         condition: on-failure
-        delay: 10s
-        max_attempts: 3
-      labels:
-        - traefik.enable=true
-        - traefik.backend=nginx-frontend
-        - traefik.docker.network=proxy
-        - traefik.port=80
-        - traefik.docker.tags=${TRAEFIK_PUBLIC_TAG:-nginx-frontend}
-        - traefik.frontend.rule=Host:node-app.${DOMAIN:-labs.cometari.com}
-        - traefik.backend.healthcheck.path=/healthcheck
-        - traefik.backend.healthcheck.interval=1s
+        max_attempts: 10
       resources:
         limits:
-          memory: 64MB
+          cpus: '0.20'
+          memory: 16M
+        reservations:
+          cpus: '0.20'
+          memory: 4M
+      labels:
+      # With a real domain name you would 
+      # "traefik.frontend.rule=Host:mydummysite.tk"
+      - "traefik.frontend.rule=PathPrefixStrip:/"
+      - "traefik.backend=home"
+      - "traefik.port=2015"
+      - "traefik.weight=10"
+      - "traefik.enable=true"
+      - "traefik.passHostHeader=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.frontend.entryPoints=http"
+      - "traefik.backend.loadbalancer.swarm=true"
+      - "traefik.backend.loadbalancer.method=drr"
 
-configs:
-  nginx_config:
-    name: nginx-config-${NGINX_CONFIG:-3}
-    file: nginx.conf
+  who1:
+    <<: *default-opts
+    image: nginx:1.15-alpine
+    networks:
+      - proxy
+    #volumes:
+      #- /localhost/www/who1/srv:/srv
+    deploy:
+      mode: replicated
+      replicas: 1
+      #placement:
+      #  constraints: [node.role==manager]
+      restart_policy:
+        condition: on-failure
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: '0.20'
+          memory: 16M
+        reservations:
+          cpus: '0.05'
+          memory: 4M
+      labels:
+      - "traefik.frontend.rule=PathPrefixStrip:/who1"
+      - "traefik.backend=who1"
+      - "traefik.port=80"
+      - "traefik.weight=10"
+      - "traefik.enable=true"
+      - "traefik.passHostHeader=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.frontend.entryPoints=http"
+      - "traefik.backend.loadbalancer.swarm=true"
+      - "traefik.backend.loadbalancer.method=drr"
+
+  who2:
+    <<: *default-opts
+    image: emilevauge/whoami
+    networks:
+      - proxy
+    deploy:
+      mode: replicated
+      replicas: 1
+      #placement:
+      #  constraints: [node.role==manager]
+      restart_policy:
+        condition: on-failure
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: '0.20'
+          memory: 8M
+        reservations:
+          cpus: '0.05'
+          memory: 4M
+      labels:
+      - "traefik.frontend.rule=PathPrefixStrip:/who2"
+      - "traefik.backend=who2"
+      - "traefik.port=80"
+      - "traefik.weight=10"
+      - "traefik.enable=true"
+      - "traefik.passHostHeader=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.frontend.entryPoints=http"
+      - "traefik.backend.loadbalancer.swarm=true"
+      - "traefik.backend.loadbalancer.method=drr"
+
+  who3:
+    <<: *default-opts
+    image: emilevauge/whoami
+    networks:
+      - proxy
+    deploy:
+      mode: replicated
+      replicas: 1
+      #placement:
+      #  constraints: [node.role==manager]
+      restart_policy:
+        condition: on-failure
+        max_attempts: 10
+      resources:
+        limits:
+          cpus: '0.20'
+          memory: 8M
+        reservations:
+          cpus: '0.05'
+          memory: 4M
+      labels:
+      - "traefik.frontend.rule=PathPrefixStrip:/who3"
+      - "traefik.backend=who3"
+      - "traefik.port=80"
+      - "traefik.weight=10"
+      - "traefik.enable=true"
+      - "traefik.passHostHeader=true"
+      - "traefik.docker.network=proxy"
+      - "traefik.frontend.entryPoints=http"
+      - "traefik.backend.loadbalancer.swarm=true"
+      - "traefik.backend.loadbalancer.method=drr"
+
+# https://github.com/pascalandy/docker-stack-this
