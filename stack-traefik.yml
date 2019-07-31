@@ -12,12 +12,12 @@ services:
       - --docker.watch
       - --docker.exposedbydefault=false
       - --docker.swarmModeRefreshSeconds=5
-      - --entrypoints=Name:http Address::80 Redirect.EntryPoint:https
-      - --entrypoints=Name:https Address::443 TLS
-      - --defaultentrypoints=http,https
+      #- --entrypoints=Name:http Address::80 Redirect.EntryPoint:https
+      #- --entrypoints=Name:https Address::443 TLS
+      - --defaultentrypoints=http,http
       - --metrics
       - --metrics.prometheus
-      - --logLevel=ERROR
+      - --logLevel=WARN
       - --accessLog
       #- --acme
       #- --acme.email=kuba@cometari.com
