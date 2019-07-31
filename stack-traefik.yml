@@ -14,7 +14,7 @@ services:
       - --docker.swarmModeRefreshSeconds=5
       #- --entrypoints=Name:http Address::80 Redirect.EntryPoint:https
       #- --entrypoints=Name:https Address::443 TLS
-      - --defaultentrypoints=http,http
+      - --defaultentrypoints=http
       - --metrics
       - --metrics.prometheus
       - --logLevel=WARN
